@@ -5,25 +5,56 @@ import json
 from config import SITES_LIST
 
 
-def process_json(json_config, data):
+def process_conditional(data, keys, output):
+    if isinstance(data, list):
+        for item in data:
+            process_conditional(item, keys, output)
+    elif isinstance(data, dict):
+        if keys:
+            key = keys[0]
+            if key in data:
+                process_conditional(data[key], keys[1:], output)
+    else:
+        if not keys:
+            output.add(data)
+
+
+def process_if_else(data, conditions, output):
+    if "IF" in conditions:
+        if "VALUE" in conditions['IF']:
+            if_keys = conditions['IF']['VALUE'].split(',')
+            process_conditional(data, if_keys, output)
+
+    if "ELSE" in conditions:
+        if "VALUE" in conditions['ELSE']:
+            else_keys = conditions['ELSE']['VALUE'].split(',')
+            process_conditional(data, else_keys, output)
+
+
+def process_json(json_config, data, output):
+    conditional = {}
+
     if "PARENT" in json_config:
         parent_keys = json_config['PARENT'].split(",")
 
         for parent_key in parent_keys:
             data = data[parent_key]
 
-    print(json_config)
+    if "FIELD_KEYS" in json_config:
+        if "VALUE" in json_config['FIELD_KEYS']:
+            if isinstance(json_config['FIELD_KEYS']['VALUE'], dict):
+                conditional = json_config['FIELD_KEYS']['VALUE']
 
-    # if isinstance(data, list):
-    #     for item in data:
-    #
+    if conditional:
+        if isinstance(conditional, dict):
+            process_if_else(data, conditional, output)
 
 
-def process_output(cities_config, data):
+def process_output(cities_config, data, output):
     if "RULE_JSON" in cities_config:
-        process_json(cities_config['RULE_JSON'], data)
+        process_json(cities_config['RULE_JSON'], data, output)
 
-def get_all_cities(cities_config):
+def get_all_cities(cities_config, cities):
     url = ""
     payload = None
     headers = None
@@ -44,12 +75,12 @@ def get_all_cities(cities_config):
     response = requests.request(method, url, headers=headers, data=payload)
     data = response.json()
 
-    process_output(cities_config, data)
-
-
+    process_output(cities_config, data, cities)
 
 
 def process_child(parent_content, child_content):
+    cities = set()
+
     if "cities" in child_content:
         if "PREFIX" in parent_content:
             child_content['cities']['MASTER'] = urljoin(parent_content['PREFIX'], child_content['cities']['MASTER'])
@@ -59,8 +90,9 @@ def process_child(parent_content, child_content):
 
         cities_config = child_content["cities"]
 
-        cities = get_all_cities(cities_config)
+        get_all_cities(cities_config, cities)
 
+    print(cities)
 
 def process_sites(sites_to_be_extracted):
     for site in sites_to_be_extracted:

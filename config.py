@@ -29,12 +29,28 @@ SITES_LIST = {
                             "ELSE": {
                                 "KEY": "city",
                                 "VALUE": "name"
-                            },
-                            "BOTH": True
+                            }
                         }
                     }
                 }
             },
+            "movies": {
+                "MASTER": "booking/content/nowshowing",
+                "PAYLOAD": {
+                    "city": "{{cities}}"
+                },
+                "HEADERS": {
+                    'appversion': '1.0',
+                    'city': '{{cities}}',
+                    'content-type': 'application/json',
+                    'platform': 'WEBSITE',
+                    'Cookie': 'ak_bmsc=E2EE3980C10701E95642A19FF81AD2F1~000000000000000000000000000000~YAAQF3BWuG3i9oaWAQAAyc/GpxuDVsc1jF9IeWk1nIEEovMdCqKX7+f32uflXq6CCgu1+1rGiIFQIqQwiceY7RInHgsGn/S6tKcmi//vGraRMx01lhsnTILBchmpUFkSWWeBHvHGOiWI8qM3aEcF9MI/ASZC9vwuXy829upN5ujJpWmd9OG3IlmSVDEdQQfZtZ8ZE9pCZV+KsvsWgo9SdByDtyoJhlqYzt9+kjN0BKcAiRtxBhf+apRnkd5ZVbUpBgbpAT2GLxXRozARJerBdpPVccfsDAf4lg7mNyHg/goGe4e0gk/LbqiqEqcjVHXWpUTXy/h3DyI8KiDi0OETQfZklqVaS276ItEeyllASbQscXvfOA==; bm_sv=60501F383E5A3F5DA53982C682C40E69~YAAQF3BWuPXh9oaWAQAASqTGpxtBPT2xcecv8W91LCXbKoNepORl6r3oxf/3s2GmVZBRqmHHw4qX2bnL/8kwBv9S4MybomuDeTdvkxsj3MwFb8+tqypshjg6y9MmApeGZQG9lNCjknE4Vqv6flHzKjd91h/+LkA1ynL6l5SOhJA5PZMdyda0R/AKbroaJTrhivIyfbK98XPucpuCdnFLSjKEBw7CmFDgp97D7cP7qgS36jmJR7yIDmoTFzH6W8Qior1oYCY=~1'
+                },
+                "RULE_JSON": {
+                    "PARENT": "mv",
+                    "FIELD_KEYS": "filmIds"
+                }
+            }
         }
     }
 }

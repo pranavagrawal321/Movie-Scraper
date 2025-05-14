@@ -226,6 +226,35 @@ def process_child(parent_content, child_content):
 
         get_all_movies(movies_config, movies, cities, test=True)
 
+    if 'sessions' in child_content:
+        if "PREFIX" in parent_content:
+            child_content['sessions']['MASTER'] = urljoin(parent_content['PREFIX'], child_content['sessions']['MASTER'])
+
+        if "METHOD" in parent_content:
+            child_content['sessions']['METHOD'] = parent_content['METHOD']
+
+        if "HEADERS" not in child_content['sessions']:
+            child_content['sessions']['HEADERS'] = {}
+
+        if "User-Agent" in parent_content:
+            child_content['sessions']['HEADERS']['User-Agent'] = parent_content['User-Agent']
+
+        elif "User-Agent" not in parent_content and "User-Agent" not in child_content['sessions']['HEADERS']:
+            child_content['sessions']['HEADERS']['User-Agent'] = ua.random
+
+        if "PROXY" in parent_content and parent_content['PROXY'] == "YES":
+            proxy = FreeProxy().get()
+
+            proxies = {
+                "http": proxy,
+            }
+
+            child_content['sessions']['PROXY'] = proxies
+
+        session_config = child_content["sessions"]
+
+        print(session_config)
+
 
 def process_sites(sites_to_be_extracted):
     for site in sites_to_be_extracted:

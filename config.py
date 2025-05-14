@@ -54,6 +54,29 @@ SITES_LIST = {
                         "VALUE": "filmIds"
                     },
                 }
+            },
+            "sessions": {
+                "MASTER": "booking/content/msessions",
+                "PAYLOAD": {
+                    "city": "{{cities}}",
+                    "mid": "{{movie_id}}"
+                },
+                "HEADERS": {
+                    'appversion': '1.0',
+                    'authorization': 'Bearer',
+                    'city': "{{cities}}",
+                    'content-type': 'application/json',
+                    'origin': 'https://www.pvrcinemas.com',
+                    'platform': 'WEBSITE',
+                    'Cookie': 'ak_bmsc=61718283E0D36E0FC9A999FA36EF067E~000000000000000000000000000000~YAAQF3BWuISDFs2WAQAA3CVI0BvoZsK8fQaiSodyD55+eBsy6wO8CfYl8UeqKTWqVt9o8EI873Lj1PT89kAu4CShIlW6h7N7+2GsgXBGp8hEW/5Ygeey/tTBZgm36j15z0HpwJX1lPj8uoZXgS0Zjy48/63X/Y0X1GSNw6FANjDbap417yiPsKBxSBjwOZnoiHkl55SsXwb/3fXpH54ZJb5IRv03oxSsvQVyQxS4hqAne6J2I1//ziasjDs6dvk//fKbIy2IxfMjpge5Cscm0uuKQfZB6HRZM31/glIqW7vFRA7aTHp6n2FplhKPrf932oND171P/ImPzW73xhOcfxfhA2MUYSXni1k8KIChdMp5h8wV9jUW/Gj23w==; bm_sv=4BE777E05E4608BBDE2053FCD43D607B~YAAQF3BWuCKEFs2WAQAAMTNI0BtlEKi39rdHeACPrG2pOes67eb1I+VJv1JPKYl9bsOs6mK0jZXvcW0l1tEaBGKyB2rbJNqUPvG9+LMrPVmBIHW/s7z1RUVxweozHtcZEvsXbkpsk9LuZNldN26B3wvytm0YdarXM7mJXlqj7GhULBsHU2nBCxwQ5FWQTTgUx+rQnDXJ3p8/JeuICKM0cjpjXRzKqpGJV9imFzlMgFh/8z7SIQvv1EX0gs7fMReYoMdbQgA=~1'
+                },
+                "RULE_JSON": {
+                    "PARENT": "movieCinemaSessions,experienceSessions,shows",
+                    "FIELD_KEYS": {
+                        "KEY": "seat_id",
+                        "VALUE": "encrypted"
+                    }
+                }
             }
         }
     }

@@ -4,9 +4,31 @@ from curl_cffi import requests
 import json
 from fake_useragent import UserAgent
 from fp.fp import FreeProxy
+from time import sleep
+import signal
+import sys
 from config import SITES_LIST
 
 ua = UserAgent()
+
+
+def create_session(config=None):
+    if config is None:
+        config = dict()
+
+    session = requests.Session()
+
+    session.impersonate = config.get("IMPERSONATE", "chrome")
+
+    headers = config.get("HEADERS")
+    if isinstance(headers, dict):
+        session.headers.update(headers)
+
+    proxy = config.get("PROXY")
+    if isinstance(proxy, dict):
+        session.proxies.update(proxy)
+
+    return session
 
 
 def process_conditional(data, keys, output):
@@ -33,7 +55,7 @@ def process_conditional(data, keys, output):
             output.add(data)
 
 
-def process_if_else(data, conditions, output, test):
+def process_if_else(data, conditions, output):
     if "IF" in conditions:
         if "VALUE" in conditions['IF']:
             if_keys = conditions['IF']['VALUE'].split(',')
@@ -45,9 +67,12 @@ def process_if_else(data, conditions, output, test):
             process_conditional(data, else_keys, output)
 
 
-def process_json(json_config, data, output, test):
+def process_json(json_config, data, output, debug=False):
     conditional = None
     key = None
+
+    if debug:
+        breakpoint()
 
     if "PARENT" in json_config:
         parent_keys = json_config['PARENT'].split(',')
@@ -74,7 +99,7 @@ def process_json(json_config, data, output, test):
     if conditional:
         if isinstance(data, list):
             for row in data:
-                process_if_else(row, conditional, output, test)
+                process_if_else(row, conditional, output)
 
     if key:
         if isinstance(data, list):
@@ -82,12 +107,12 @@ def process_json(json_config, data, output, test):
                 process_conditional(row, key, output)
 
 
-def process_output(cities_config, data, output, test):
+def process_output(cities_config, data, output, debug=False):
     if "RULE_JSON" in cities_config:
-        process_json(cities_config['RULE_JSON'], data, output, test)
+        process_json(cities_config['RULE_JSON'], data, output, debug)
 
 
-def get_all_cities(cities_config, cities):
+def get_all_cities(cities_config, cities, session):
     url = ""
     payload = None
     headers = None
@@ -109,7 +134,7 @@ def get_all_cities(cities_config, cities):
     if "PROXY" in cities_config:
         proxies = cities_config['PROXY']
 
-    response = requests.request(
+    response = session.request(
         method=method,
         url=url,
         headers=headers,
@@ -121,10 +146,11 @@ def get_all_cities(cities_config, cities):
 
     data = response.json()
 
-    process_output(cities_config, data, cities, test=False)
+    process_output(cities_config, data, cities)
+    sleep(1)
 
 
-def get_all_movies(movies_config, movies, cities, test=False):
+def get_all_movies(movies_config, movies, cities, session):
     url = ""
     payload = None
     headers = None
@@ -151,7 +177,7 @@ def get_all_movies(movies_config, movies, cities, test=False):
                     payload['city'] = city
                     headers['city'] = city
 
-                    response = requests.request(method, url, headers=headers, data=payload)
+                    response = session.request(method, url, headers=headers, data=payload)
 
                     if response.status_code != 200:
                         continue
@@ -161,12 +187,72 @@ def get_all_movies(movies_config, movies, cities, test=False):
                     if "status" in data and data['status'] == 204:
                         continue
 
-                    process_output(movies_config, data, movies, test)
+                    process_output(movies_config, data, movies)
+                    sleep(1)
 
 
-def process_child(parent_content, child_content):
+def get_all_sessions(session_config, movies, cities, session, sessions):
+    url = ""
+    payload_template = None
+    headers_template = None
+    method = "GET"
+
+    if "MASTER" in session_config:
+        url = session_config['MASTER']
+
+    if "PAYLOAD" in session_config and isinstance(session_config['PAYLOAD'], dict):
+        payload_template = session_config['PAYLOAD']
+
+    if "HEADERS" in session_config:
+        headers_template = session_config['HEADERS']
+
+    if "METHOD" in session_config:
+        method = session_config['METHOD']
+
+    for movie in movies:
+        for city in cities:
+            print(f"Processing city {city} and movie {movie}")
+
+            payload = json.loads(json.dumps(payload_template))
+            headers = headers_template.copy()
+
+            for key, val in payload.items():
+                if isinstance(val, str) and val.startswith("{{") and val.endswith("}}"):
+                    if val[2:-2] == 'cities':
+                        payload[key] = city
+                    elif val[2:-2] == 'movie_id':
+                        payload[key] = movie
+
+            for key, val in headers.items():
+                if isinstance(val, str) and val.startswith("{{") and val.endswith("}}"):
+                    if val[2:-2] == 'cities':
+                        headers[key] = city
+
+            breakpoint()
+
+            response = session.request(
+                method=method,
+                url=url,
+                headers=headers,
+                data=json.dumps(payload)
+            )
+
+            if response.status_code != 200:
+                continue
+
+            data = response.json()
+
+            if "status" in data and data['status'] == 204:
+                continue
+
+            process_output(session_config, data, sessions, debug=True)
+            sleep(1)
+
+
+def process_child(parent_content, child_content, session):
     cities = set()
     movies = set()
+    sessions = set()
 
     if "cities" in child_content:
         if "PREFIX" in parent_content:
@@ -185,17 +271,18 @@ def process_child(parent_content, child_content):
             child_content['cities']['HEADERS']['User-Agent'] = ua.random
 
         if "PROXY" in parent_content and parent_content['PROXY'] == "YES":
-            proxy = FreeProxy().get()
-
+            proxy = FreeProxy(country_id=['IN']).get()
             proxies = {
                 "http": proxy,
+                "https": proxy,
             }
-
             child_content['cities']['PROXY'] = proxies
 
         cities_config = child_content["cities"]
 
-        get_all_cities(cities_config, cities)
+        get_all_cities(cities_config, cities, session)
+
+    print(cities)
 
     if "movies" in child_content:
         if "PREFIX" in parent_content:
@@ -214,17 +301,18 @@ def process_child(parent_content, child_content):
             child_content['movies']['HEADERS']['User-Agent'] = ua.random
 
         if "PROXY" in parent_content and parent_content['PROXY'] == "YES":
-            proxy = FreeProxy().get()
-
+            proxy = FreeProxy(country_id=['IN']).get()
             proxies = {
                 "http": proxy,
+                "https": proxy,
             }
-
-            child_content['movies']['PROXY'] = proxies
+            child_content['cities']['PROXY'] = proxies
 
         movies_config = child_content["movies"]
 
-        get_all_movies(movies_config, movies, cities, test=True)
+        get_all_movies(movies_config, movies, cities, session)
+
+    print(movies)
 
     if 'sessions' in child_content:
         if "PREFIX" in parent_content:
@@ -238,35 +326,37 @@ def process_child(parent_content, child_content):
 
         if "User-Agent" in parent_content:
             child_content['sessions']['HEADERS']['User-Agent'] = parent_content['User-Agent']
-
         elif "User-Agent" not in parent_content and "User-Agent" not in child_content['sessions']['HEADERS']:
             child_content['sessions']['HEADERS']['User-Agent'] = ua.random
 
         if "PROXY" in parent_content and parent_content['PROXY'] == "YES":
-            proxy = FreeProxy().get()
-
+            proxy = FreeProxy(country_id=['IN']).get()
             proxies = {
                 "http": proxy,
+                "https": proxy,
             }
-
-            child_content['sessions']['PROXY'] = proxies
+            child_content['cities']['PROXY'] = proxies
 
         session_config = child_content["sessions"]
 
-        print(session_config)
+        get_all_sessions(session_config, movies, cities, session, sessions)
+
+    print(sessions)
 
 
 def process_sites(sites_to_be_extracted):
+    session = create_session()
+
     for site in sites_to_be_extracted:
         print(f"Processing {site}")
 
         parent_content = SITES_LIST[site]
         child_content = SITES_LIST[site]['URL']
 
-        process_child(parent_content, child_content)
+        process_child(parent_content, child_content, session)
 
 
-def main():
+def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-s",
@@ -275,15 +365,22 @@ def main():
         help="Sites to scrape"
     )
 
-    args = parser.parse_args()
+    arguments = parser.parse_args(argv)
 
-    if args.sites == "*":
+    if arguments.sites == "*":
         sites_to_be_extracted = SITES_LIST.keys()
     else:
-        sites_to_be_extracted = args.sites.split(",")
+        sites_to_be_extracted = arguments.sites.split(",")
 
     process_sites(sites_to_be_extracted)
 
 
 if __name__ == '__main__':
-    main()
+    def sigterm_handler(_signo, _stack_frame):
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, sigterm_handler)
+    signal.signal(signal.SIGINT, sigterm_handler)
+
+    args = sys.argv[1:]
+    main(args)

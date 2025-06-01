@@ -87,10 +87,49 @@ SITES_LIST = {
                     'sec-gpc': '1',
                 },
                 "RULE_JSON": {
-                    "PARENT": "movieCinemaSessions,experienceSessions,shows",
+                    "PARENT": "output,movieCinemaSessions,experienceSessions,shows",
                     "FIELD_KEYS": {
                         "KEY": "seat_id",
                         "VALUE": "encrypted"
+                    }
+                }
+            }
+        }
+    },
+    "cinepolis": {
+        "PREFIX": "https://api_new.cinepolisindia.com/api/movies/",
+        "PROXY": "YES",
+        "URL": {
+            "cities": {
+                "MASTER": "cities",
+                "HEADERS": {
+                    'Referer': 'https://cinepolisindia.com/',
+                    'city_id': '9',
+                    'Accept': 'application/json'
+                },
+                "RULE_JSON": {
+                    "PARENT": "data",
+                    "FIELD_KEYS": {
+                        "KEY": "city",
+                        "VALUE": "city_id"
+                    }
+                }
+            },
+            "movies": {
+                "MASTER": "now-playing-filtered/?movie_language_id=&movie_genre_id=&city_id=9",
+                "HEADERS": {
+                    'accept': 'application/json',
+                    'accept-language': 'en-GB,en;q=0.6',
+                    'city_id': '9',
+                    'origin': 'https://cinepolisindia.com',
+                    'priority': 'u=1, i',
+                    'referer': 'https://cinepolisindia.com/'
+                },
+                "RULE_JSON": {
+                    "PARENT": "data",
+                    "FIELD_KEYS": {
+                        "KEY": "movie_id",
+                        "VALUE": "movie_id"
                     }
                 }
             }

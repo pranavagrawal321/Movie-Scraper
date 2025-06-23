@@ -1,3 +1,6 @@
+from datetime import date
+from random import randint
+
 SITES_LIST = {
     "pvr": {
         "PREFIX": "https://api3.pvrcinemas.com/api/v1/",
@@ -93,6 +96,53 @@ SITES_LIST = {
                         "VALUE": "encrypted"
                     }
                 }
+            },
+            "seats": {
+                "MASTER": "booking/ticketing/seatlayout",
+                "METHOD": "POST",
+                "PAYLOAD": {
+                    "dated": date.today().strftime("%Y-%m-%d"),
+                    "encrypted": "{{encrypted_keys}}",
+                    "onPage": False,
+                    "layoutType": "NEW"
+                },
+                "HEADERS": {
+                    'accept': 'application/json, text/plain, */*',
+                    'accept-language': 'en-GB,en;q=0.7',
+                    'appversion': '1.0',
+                    'authorization': 'Bearer',
+                    'chain': 'PVR',
+                    'city': "{{cities}}",
+                    'content-type': 'application/json',
+                    'country': 'INDIA',
+                    'origin': 'https://www.pvrcinemas.com',
+                    'platform': 'WEBSITE',
+                    'priority': 'u=1, i'
+                },
+                "RULE_JSON": {
+                    "PARENT": "output",
+                    "FIELD_KEYS": {
+                        "movie_id": "filmData,filmId",
+                        "movie_name": "filmData,filmNameWeb",
+                        "format": "filmData,format",
+                        "release_date": "filmData,releaseDate",
+                        "certificate": "filmData,certificate",
+                        "starring": "filmData,starring",
+                        "director": "filmData,director",
+                        "length": "filmData,runningTime",
+                        "genre": "filmData,genre",
+                        "language": "filmData,language",
+                        "summary": "filmData,synopsis",
+                        "secondary_genre": "filmData,secondaryGenre",
+                        "trailer_1": "filmData,trailerUrl1",
+                        "trailer_2": "filmData,trailerUrl2",
+                        "trailer_3": "filmData,trailerUrl3",
+                        "trailer_4": "filmData,trailerUrl4",
+                        "subtitle_language": "filmData,subtitle",
+                        "category": "filmData,category",
+                        "show_category": "filmData,showCategory"
+                    }
+                }
             }
         }
     },
@@ -104,7 +154,7 @@ SITES_LIST = {
                 "MASTER": "cities",
                 "HEADERS": {
                     'Referer': 'https://cinepolisindia.com/',
-                    'city_id': '9',
+                    'city_id': str(randint(9, 31)),
                     'Accept': 'application/json'
                 },
                 "RULE_JSON": {

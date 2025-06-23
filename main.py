@@ -128,8 +128,8 @@ def process_output(data_config, data, output, debug=False):
 
 def get_all_cities(cities_config, cities, session):
     url = ""
-    payload = None
-    headers = None
+    payload = {}
+    headers = {}
     method = "GET"
     proxies = None
 
@@ -158,8 +158,6 @@ def get_all_cities(cities_config, cities, session):
         verify=True
     )
 
-    breakpoint()
-
     data = response.json()
 
     process_output(cities_config, data, cities)
@@ -168,8 +166,8 @@ def get_all_cities(cities_config, cities, session):
 
 def get_all_movies(movies_config, movies, cities, session):
     url = ""
-    payload = None
-    headers = None
+    payload = {}
+    headers = {}
     method = "GET"
 
     if "MASTER" in movies_config:
@@ -206,11 +204,17 @@ def get_all_movies(movies_config, movies, cities, session):
                     process_output(movies_config, data, movies)
                     sleep(randint(1, 3))
 
+    if not payload:
+        response = session.request(method, url, headers=headers, data=payload)
+
+        print(response)
+        breakpoint()
+
 
 def get_all_sessions(session_config, movies, cities, session, sessions):
     url = ""
-    payload_template = None
-    headers_template = None
+    payload_template = {}
+    headers_template = {}
     method = "GET"
 
     if "MASTER" in session_config:
@@ -257,11 +261,8 @@ def get_all_sessions(session_config, movies, cities, session, sessions):
             data = response.json()
 
             if "status" in data and data['status'] == 204:
-                print(data)
+                sleep(randint(1, 3))
                 continue
-
-            print("data found")
-            breakpoint()
 
             process_output(session_config, data, sessions, debug=False)
             sleep(randint(1, 3))
@@ -305,6 +306,9 @@ def process_child(parent_content, child_content, session):
         cities_config = child_content["cities"]
 
         get_all_cities(cities_config, cities, session)
+
+    print(cities)
+    breakpoint()
 
     if "movies" in child_content:
         if "PREFIX" in parent_content:
